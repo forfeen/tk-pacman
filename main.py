@@ -1,4 +1,5 @@
 import tkinter as tk
+import random
 
 from gamelib import Sprite, GameApp, Text
 
@@ -20,6 +21,7 @@ class Pacman(Sprite):
 
         self.direction = DIR_STILL
         self.next_direction = DIR_STILL
+        self.state = NormalPacmanState(self)
 
         x, y = maze.piece_center(r,c)
         super().__init__(app, 'images/pacman.png', x, y)
@@ -34,17 +36,19 @@ class Pacman(Sprite):
             if self.maze.has_dot_at(r, c):
                 self.maze.eat_dot_at(r, c)
 
+
                 # Call all the observes 
                 for observer in self.dot_eaten_observers:
                     observer()
+
+                self.state.random_upgrade()
             
             if self.maze.is_movable_direction(r, c, self.next_direction):
                 self.direction = self.next_direction
             else:
                 self.direction = DIR_STILL
 
-        self.x += PACMAN_SPEED * DIR_OFFSET[self.direction][0]
-        self.y += PACMAN_SPEED * DIR_OFFSET[self.direction][1]
+        self.state.move_pacman()
 
     def set_next_direction(self, direction):
         self.next_direction = direction
@@ -130,6 +134,38 @@ class PacmanGame(GameApp):
             pacman.set_next_direction(next_direction)
 
         return f
+
+class NormalPacmanState:
+    def __init__(self, pacman):
+        self.pacman = pacman
+
+    def random_upgrade(self):
+        if random.random() < 0.1:
+            self.pacman.state = SuperPacmanState(self.pacman)
+
+    def move_pacman(self):
+        speed = PACMAN_SPEED
+
+        self.pacman.x += speed * DIR_OFFSET[self.pacman.direction][0]
+        self.pacman.y += speed * DIR_OFFSET[self.pacman.direction][1]
+ 
+    
+class SuperPacmanState:
+    def __init__(self, pacman):
+        self.pacman = pacman
+        self.super_speed_counter = 0
+
+    def random_upgrade(self):
+        pass
+
+    def move_pacman(self):
+        speed = 2 * PACMAN_SPEED
+        self.super_speed_counter += 1
+        if self.super_speed_counter > 50:
+            self.pacman.state = NormalPacmanState(self.pacman)
+        self.pacman.x += speed * DIR_OFFSET[self.pacman.direction][0]
+        self.pacman.y += speed * DIR_OFFSET[self.pacman.direction][1]
+
 
 if __name__ == "__main__":
     root = tk.Tk()
